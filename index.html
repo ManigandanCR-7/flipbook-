@@ -1,173 +1,160 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Elegant Flipbook Viewer</title>
-  <style>
-    :root {
-      --bg: #111111; /* Matte black */
-      --fg: #ffffff;
-      --book-width: 1071px; /* TOTAL book width (both pages) */
-      --book-height: 638px;
-      --page-width: calc(var(--book-width) / 2);
-      --page-height: var(--book-height);
-    }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-    header {
-      width: 100%;
-      max-width: var(--book-width);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #fff;
-    }
-    input[type=file] {
-      padding: 8px;
-    }
-    .flipbook-container {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 60px 0; /* Gap top & bottom */
-      box-sizing: border-box;
-    }
-    #flipbook {
-      width: var(--book-width);
-      height: var(--book-height);
-      perspective: 3000px;
-    }
-    .page {
-      width: var(--page-width);
-      height: var(--page-height);
-      background: white;
-      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      transform: rotateY(0deg) !important; /* No slant */
-    }
-    .page img {
-      max-width: 100%;
-      max-height: 100%;
-      display: block;
-    }
-    /* Smooth flip */
-    .turn-page {
-      transition: transform 1.2s ease-in-out !important;
-    }
-  </style>
-
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elegant Flipbook Viewer</title>
+<style>
+  :root {
+    --bg: #111111; /* Matte black */
+    --fg: #ffffff;
+    --book-width: 1071px;
+    --book-height: 638px;
+    --page-width: calc(var(--book-width) / 2);
+    --page-height: var(--book-height);
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  header {
+    width: 100%;
+    max-width: var(--book-width);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+  input[type=file] {
+    padding: 8px;
+  }
+  .flipbook-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 0; /* Gap top & bottom */
+    box-sizing: border-box;
+  }
+  #flipbook {
+    width: var(--book-width);
+    height: var(--book-height);
+  }
+  .page {
+    width: var(--page-width);
+    height: var(--page-height);
+    background: white;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+  .page img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Flipbook Viewer</h1>
-    <input id="file-input" type="file" accept="application/pdf" />
-  </header>
+<header>
+  <h1>Flipbook Viewer</h1>
+  <input id="file-input" type="file" accept="application/pdf" />
+</header>
 
-  <div class="flipbook-container">
-    <div id="flipbook"></div>
-  </div>
+<div class="flipbook-container">
+  <div id="flipbook"></div>
+</div>
 
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+const fileInput = document.getElementById('file-input');
+
+fileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file || file.type !== 'application/pdf') {
+    alert('Please select a PDF.');
+    return;
+  }
+
+  // Destroy old book
+  if ($("#flipbook").data("turn")) {
+    $('#flipbook').turn('destroy').empty();
+  } else {
+    $('#flipbook').empty();
+  }
+
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+
+  const pagesHTML = [];
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+
+    // Scale to fit page width
+    const desiredWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+    const viewport = page.getViewport({ scale: 1 });
+    const scale = desiredWidth / viewport.width;
+    const scaledViewport = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
+
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledViewport }).promise;
+
+    // Store HTML for later
+    pagesHTML.push(`<div class="page"><img src="${canvas.toDataURL()}" alt="Page ${n}"></div>`);
+  }
+
+  // Add all pages before initializing Turn.js
+  $('#flipbook').html(pagesHTML.join(''));
+
+  // Now initialize Turn.js
+  $('#flipbook').turn({
+    width: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-width')),
+    height: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-height')),
+    autoCenter: true,
+    display: 'double',
+    duration: 1500, // Slow, smooth
+    elevation: 50,
+    gradients: true
+  });
+
+  // Arrow key navigation
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') $('#flipbook').turn('next');
+    if (e.key === 'ArrowLeft') $('#flipbook').turn('previous');
+  });
+
+  // Click navigation
+  $('#flipbook').on('click', function(e) {
+    const offset = $(this).offset();
+    const center = offset.left + $(this).width() / 2;
+    if (e.pageX > center) {
+      $('#flipbook').turn('next');
+    } else {
+      $('#flipbook').turn('previous');
     }
-
-    const fileInput = document.getElementById('file-input');
-
-    function clearFlipbook() {
-      if ($("#flipbook").data("turn")) {
-        $('#flipbook').turn('destroy').empty();
-      } else {
-        $('#flipbook').empty();
-      }
-    }
-
-    fileInput.addEventListener('change', async e => {
-      const file = e.target.files[0];
-      if (!file || file.type !== 'application/pdf') {
-        alert('Please select a PDF.');
-        return;
-      }
-      clearFlipbook();
-
-      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      const imgs = [];
-      for (let n = 1; n <= pdf.numPages; n++) {
-        const page = await pdf.getPage(n);
-        const vp = page.getViewport({ scale: 1 });
-        const tw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
-        const sc = tw / vp.width;
-        const svp = page.getViewport({ scale: sc });
-        const c = document.createElement('canvas');
-        c.width = svp.width;
-        c.height = svp.height;
-        await page.render({ canvasContext: c.getContext('2d'), viewport: svp }).promise;
-        imgs.push(c.toDataURL());
-      }
-
-      imgs.forEach((src, i) => {
-        const d = document.createElement('div');
-        d.className = 'page';
-        const im = document.createElement('img');
-        im.src = src;
-        im.alt = 'Page ' + (i + 1);
-        d.appendChild(im);
-        document.getElementById('flipbook').appendChild(d);
-      });
-
-      const bw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-width'));
-      const bh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-height'));
-
-      $('#flipbook').turn({
-        width: bw,
-        height: bh,
-        autoCenter: true,
-        display: 'double',
-        gradients: true,
-        elevation: 50,
-        duration: 1500 // Smooth turn
-      });
-
-      // Arrow key controls
-      document.addEventListener('keydown', function (ev) {
-        if (ev.key === 'ArrowRight') { $('#flipbook').turn('next'); }
-        if (ev.key === 'ArrowLeft') { $('#flipbook').turn('previous'); }
-      });
-
-      // Click edge turn
-      $('#flipbook').on('click', function (e) {
-        const offset = $(this).offset();
-        const center = offset.left + $(this).width() / 2;
-        if (e.pageX > center) {
-          $('#flipbook').turn('next');
-        } else {
-          $('#flipbook').turn('previous');
-        }
-      });
-    });
-  </script>
+  });
+});
+</script>
 </body>
 </html>
