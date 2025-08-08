@@ -6,10 +6,10 @@
 <title>Elegant Flipbook Viewer</title>
 <style>
   :root {
-    --bg: #111111; /* Matte black */
-    --fg: #ffffff;
-    --book-width: 1071px;
-    --book-height: 638px;
+    --bg: #111; /* Matte black */
+    --fg: #fff;
+    --book-width: 900px;   /* reduced width */
+    --book-height: 540px;  /* reduced height */
     --page-width: calc(var(--book-width) / 2);
     --page-height: var(--book-height);
   }
@@ -17,7 +17,7 @@
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: hidden; /* No scrollbars */
+    overflow: hidden; /* no scrollbars */
     background: var(--bg);
     color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -32,24 +32,23 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
+    padding: 12px;
     box-sizing: border-box;
   }
   h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
-    color: #fff;
   }
   input[type=file] {
-    padding: 8px;
+    padding: 6px;
   }
   .flipbook-container {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 60px 0; /* Gap top & bottom */
+    padding: 50px 0; /* top/bottom gap */
     box-sizing: border-box;
   }
   #flipbook {
@@ -60,7 +59,7 @@
     width: var(--page-width);
     height: var(--page-height);
     background: white;
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -87,7 +86,8 @@
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 document.getElementById('file-input').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -96,6 +96,7 @@ document.getElementById('file-input').addEventListener('change', async e => {
     return;
   }
 
+  // Reset flipbook
   if ($("#flipbook").data("turn")) {
     $('#flipbook').turn('destroy').empty();
   } else {
@@ -109,9 +110,13 @@ document.getElementById('file-input').addEventListener('change', async e => {
     pagePromises.push(renderPage(pdf, n));
   }
 
+  // Wait for ALL pages to be ready
   const pagesHTML = await Promise.all(pagePromises);
+
+  // Add them to DOM
   $('#flipbook').html(pagesHTML.join(''));
 
+  // Now init Turn.js AFTER all pages are rendered
   $('#flipbook').turn({
     width: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-width')),
     height: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-height')),
@@ -122,11 +127,13 @@ document.getElementById('file-input').addEventListener('change', async e => {
     gradients: true
   });
 
+  // Keyboard controls
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') $('#flipbook').turn('next');
     if (e.key === 'ArrowLeft') $('#flipbook').turn('previous');
   });
 
+  // Click to turn
   $('#flipbook').on('click', function(e) {
     const offset = $(this).offset();
     const center = offset.left + $(this).width() / 2;
@@ -151,7 +158,8 @@ async function renderPage(pdf, pageNum) {
   canvas.height = scaledViewport.height;
 
   await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-  return `<div class="page"><img src="${canvas.toDataURL()}" alt="Page ${pageNum}"></div>`;
+
+  return `<div class="page"><img src="${canvas.toDataURL('image/png')}" alt="Page ${pageNum}"></div>`;
 }
 </script>
 </body>
