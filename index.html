@@ -3,184 +3,121 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Simple Flipbook (Turn.js + PDF.js)</title>
-  <!-- Fonts & simple Apple-like system stack -->
+  <title>Flipbook with Turn.js</title>
   <style>
     :root{
       --bg:#ffffff; --fg:#000000; --muted:#666;
       --page-width:700px; --page-height:900px;
     }
-    html,body{height:100%;}
     body{
-      margin:0; padding:32px; background:var(--bg); color:var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      display:flex; flex-direction:column; gap:20px; align-items:center;
+      margin:0; padding:20px; background:var(--bg); color:var(--fg);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      display:flex; flex-direction:column; align-items:center; gap:20px;
     }
-
-    /* Header / theme */
-    header{width:100%; max-width:1100px; display:flex; align-items:center; justify-content:space-between;}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:44px;height:44px;border-radius:8px;background:#000}
-    h1{font-size:20px;margin:0;font-weight:600}
-    p.lead{margin:0;color:var(--muted);font-size:13px}
-
-    /* Controls */
-    .controls{display:flex;gap:10px;align-items:center}
-    input[type=file]{padding:8px}
-    button{background:#000;color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
-    .small{font-size:13px}
-
-    /* Flipbook container */
-    #viewer-wrap{width:100%; max-width:1100px; display:flex;justify-content:center}
-    #flipbook{
-      width:calc(var(--page-width) * 2 + 60px); /* two pages + margin for gutter */
-      height:var(--page-height);
-    }
-
-    /* Single page styling required by turn.js */
-    .page{
-      width:var(--page-width); height:var(--page-height); background:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.12);
-      display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:6px;
-      font-size:16px; color:var(--fg);
-    }
-    .page img{max-width:100%; max-height:100%; display:block}
-
-    /* Caption / tips */
-    .caption{max-width:1100px;color:var(--muted);font-size:13px;text-align:center}
-
-    /* Responsive: scale the flipbook on small screens */
-    @media (max-width:900px){
-      :root{--page-width:320px;--page-height:460px}
-      #flipbook{width:calc(var(--page-width) * 2 + 40px)}
+    header{max-width:1100px;width:100%;display:flex;justify-content:space-between;align-items:center;}
+    h1{margin:0;font-size:20px;font-weight:600;}
+    input[type=file]{padding:8px;}
+    #flipbook{width:calc(var(--page-width)*2);height:var(--page-height);}
+    .page{width:var(--page-width);height:var(--page-height);background:white;box-shadow:0 4px 10px rgba(0,0,0,0.1);display:flex;justify-content:center;align-items:center;overflow:hidden;}
+    .page img{max-width:100%;max-height:100%;display:block;}
+    @media(max-width:900px){
+      :root{--page-width:320px;--page-height:460px;}
+      #flipbook{width:calc(var(--page-width)*2);}
     }
   </style>
-
-  <!-- Libraries: jQuery, turn.js, PDF.js -->
-  <!-- If these CDN links don't load, download libs and host locally. -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
   <header>
-    <div class="brand">
-      <div class="logo" aria-hidden></div>
-      <div>
-        <h1>Flipbook — Simple & Minimal</h1>
-        <p class="lead">Upload a PDF and see it become a smooth flipbook. Theme: white background, crisp black typography.</p>
-      </div>
-    </div>
-
-    <div class="controls">
-      <label class="small">Choose PDF</label>
-      <input id="file-input" type="file" accept="application/pdf" />
-      <button id="reset-btn" class="small">Reset</button>
-    </div>
+    <h1>Flipbook Viewer</h1>
+    <input id="file-input" type="file" accept="application/pdf" />
   </header>
-
-  <div id="viewer-wrap">
-    <div id="flipbook"></div>
-  </div>
-
-  <div class="caption">Tip: drag the page corners or use keyboard arrows. Works best on desktop.</div>
-
+  <div id="flipbook"></div>
   <script>
-    // PDF.js worker setup (the CDN supplies the worker within same package path)
-    if (typeof pdfjsLib !== 'undefined'){
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    if(typeof pdfjsLib!=='undefined'){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
 
-    const fileInput = document.getElementById('file-input');
-    const flipbook = document.getElementById('flipbook');
-    const resetBtn = document.getElementById('reset-btn');
+    const fileInput=document.getElementById('file-input');
 
-    // Utility: clear flipbook
     function clearFlipbook(){
-      // destroy turn if initialized
-      if ($("#flipbook").data("turn")){
-        try{ $('#flipbook').turn('destroy').empty(); }catch(e){ $('#flipbook').empty(); }
-      } else { $('#flipbook').empty(); }
+      if($("#flipbook").data("turn")){$('#flipbook').turn('destroy').empty();}else{$('#flipbook').empty();}
     }
 
-    resetBtn.addEventListener('click', ()=>{
-      fileInput.value = '';
+    fileInput.addEventListener('change',async e=>{
+      const file=e.target.files[0];
+      if(!file||file.type!=='application/pdf'){alert('Please select a PDF.');return;}
       clearFlipbook();
-    });
 
-    fileInput.addEventListener('change', async (e)=>{
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      if (file.type !== 'application/pdf'){
-        alert('Please upload a PDF file.');
-        return;
+      const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+      const imgs=[];
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const vp=page.getViewport({scale:1});
+        const tw=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+        const sc=tw/vp.width;
+        const svp=page.getViewport({scale:sc});
+        const c=document.createElement('canvas');
+        c.width=svp.width; c.height=svp.height;
+        await page.render({canvasContext:c.getContext('2d'),viewport:svp}).promise;
+        imgs.push(c.toDataURL());
       }
 
-      clearFlipbook();
-      const arrayBuffer = await file.arrayBuffer();
-
-      const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
-      const pdf = await loadingTask.promise;
-      const numPages = pdf.numPages;
-
-      // Render each page to a canvas sequentially (keeps memory lower)
-      const pageImages = [];
-      for (let pageNum=1; pageNum<=numPages; pageNum++){
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({scale: 1});
-
-        // scale to page width variable
-        const targetWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width')) || 700;
-        const scale = targetWidth / viewport.width;
-        const scaledViewport = page.getViewport({scale});
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(scaledViewport.width);
-        canvas.height = Math.round(scaledViewport.height);
-        const ctx = canvas.getContext('2d');
-
-        const renderContext = {canvasContext: ctx, viewport: scaledViewport};
-        await page.render(renderContext).promise;
-
-        // Convert canvas to image data URL
-        const dataURL = canvas.toDataURL('image/png');
-        pageImages.push(dataURL);
-      }
-
-      // Build flipbook pages. turn.js expects pages as immediate child elements.
-      // We want two-page spreads; turn.js handles odd/even automatically.
-      pageImages.forEach((src, idx)=>{
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-
-        // small Apple-like typographic touch: show page number on top-right small if image missing
-        const img = document.createElement('img');
-        img.src = src;
-        img.alt = 'Page ' + (idx+1);
-        pageDiv.appendChild(img);
-        flipbook.appendChild(pageDiv);
+      imgs.forEach((src,i)=>{
+        const d=document.createElement('div');
+        d.className='page';
+        const im=document.createElement('img');
+        im.src=src; im.alt='Page '+(i+1);
+        d.appendChild(im);
+        document.getElementById('flipbook').appendChild(d);
       });
 
-      // Initialize turn.js
-      // Determine width/height from CSS vars
-      const pageW = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
-      const pageH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-height'));
+      const pw=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+      const ph=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-height'));
 
       $('#flipbook').turn({
-        width: pageW * 2 + 30,
-        height: pageH,
-        autoCenter: true,
-        gradients: true,
-        elevation: 50,
-        display: 'double'
+        width:pw*2,
+        height:ph,
+        autoCenter:true,
+        display:'double',
+        gradients:true,
+        elevation:50
       });
 
-      // Accessibility: keyboard navigation
-      document.addEventListener('keydown', (ev)=>{
-        if (ev.key === 'ArrowRight') $('#flipbook').turn('next');
-        if (ev.key === 'ArrowLeft') $('#flipbook').turn('previous');
+      // Keyboard arrow controls
+      document.addEventListener('keydown',function(ev){
+        if(ev.key==='ArrowRight'){$('#flipbook').turn('next');}
+        if(ev.key==='ArrowLeft'){$('#flipbook').turn('previous');}
       });
 
+      // Click edge to turn
+      $('#flipbook').on('click', function(e){
+        const offset = $(this).offset();
+        const center = offset.left + $(this).width()/2;
+        if(e.pageX > center){
+          $('#flipbook').turn('next');
+        } else {
+          $('#flipbook').turn('previous');
+        }
+      });
+
+      // Touch swipe for mobile
+      let touchStartX=0;
+      document.getElementById('flipbook').addEventListener('touchstart', e=>{
+        touchStartX=e.changedTouches[0].screenX;
+      });
+      document.getElementById('flipbook').addEventListener('touchend', e=>{
+        let diff=e.changedTouches[0].screenX - touchStartX;
+        if(Math.abs(diff) > 50){
+          if(diff < 0){
+            $('#flipbook').turn('next'); // swipe left
+          } else {
+            $('#flipbook').turn('previous'); // swipe right
+          }
+        }
+      });
     });
   </script>
 </body>
