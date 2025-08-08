@@ -13,23 +13,26 @@
     --page-width: calc(var(--book-width) / 2);
     --page-height: var(--book-height);
   }
-  body {
+  html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* No scrollbars */
     background: var(--bg);
     color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
   }
   header {
+    flex-shrink: 0;
     width: 100%;
     max-width: var(--book-width);
+    margin: 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 15px;
     box-sizing: border-box;
   }
   h1 {
@@ -86,16 +89,13 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-const fileInput = document.getElementById('file-input');
-
-fileInput.addEventListener('change', async e => {
+document.getElementById('file-input').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file || file.type !== 'application/pdf') {
     alert('Please select a PDF.');
     return;
   }
 
-  // Destroy old book
   if ($("#flipbook").data("turn")) {
     $('#flipbook').turn('destroy').empty();
   } else {
@@ -104,47 +104,29 @@ fileInput.addEventListener('change', async e => {
 
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
 
-  const pagesHTML = [];
+  const pagePromises = [];
   for (let n = 1; n <= pdf.numPages; n++) {
-    const page = await pdf.getPage(n);
-
-    // Scale to fit page width
-    const desiredWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
-    const viewport = page.getViewport({ scale: 1 });
-    const scale = desiredWidth / viewport.width;
-    const scaledViewport = page.getViewport({ scale });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = scaledViewport.width;
-    canvas.height = scaledViewport.height;
-
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledViewport }).promise;
-
-    // Store HTML for later
-    pagesHTML.push(`<div class="page"><img src="${canvas.toDataURL()}" alt="Page ${n}"></div>`);
+    pagePromises.push(renderPage(pdf, n));
   }
 
-  // Add all pages before initializing Turn.js
+  const pagesHTML = await Promise.all(pagePromises);
   $('#flipbook').html(pagesHTML.join(''));
 
-  // Now initialize Turn.js
   $('#flipbook').turn({
     width: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-width')),
     height: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--book-height')),
     autoCenter: true,
     display: 'double',
-    duration: 1500, // Slow, smooth
+    duration: 1500,
     elevation: 50,
     gradients: true
   });
 
-  // Arrow key navigation
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') $('#flipbook').turn('next');
     if (e.key === 'ArrowLeft') $('#flipbook').turn('previous');
   });
 
-  // Click navigation
   $('#flipbook').on('click', function(e) {
     const offset = $(this).offset();
     const center = offset.left + $(this).width() / 2;
@@ -155,6 +137,22 @@ fileInput.addEventListener('change', async e => {
     }
   });
 });
+
+async function renderPage(pdf, pageNum) {
+  const page = await pdf.getPage(pageNum);
+  const desiredWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+  const viewport = page.getViewport({ scale: 1 });
+  const scale = desiredWidth / viewport.width;
+  const scaledViewport = page.getViewport({ scale });
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = scaledViewport.width;
+  canvas.height = scaledViewport.height;
+
+  await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+  return `<div class="page"><img src="${canvas.toDataURL()}" alt="Page ${pageNum}"></div>`;
+}
 </script>
 </body>
 </html>
