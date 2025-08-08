@@ -6,60 +6,52 @@
   <title>Flipbook with Turn.js</title>
   <style>
     :root{
-      --bg:#000000; 
-      --fg:#ffffff; 
+      --bg:#111; /* matte black background */
+      --fg:#000000; 
       --muted:#666;
       --page-width:535.5px; 
       --page-height:638px;
     }
     body{
-      margin:0; 
-      padding:20px; 
-      background:var(--bg); 
-      color:var(--fg);
+      margin:0; padding:20px; background:var(--bg); color:var(--fg);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-      display:flex; 
-      flex-direction:column; 
-      align-items:center; 
-      gap:20px;
-      overflow:hidden; /* Removes scrollbar */
+      display:flex; flex-direction:column; align-items:center; gap:20px;
+      overflow:hidden; /* no scrollbars */
     }
     header{
-      max-width:1100px;
-      width:100%;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
+      max-width:1100px;width:100%;
+      display:flex;justify-content:space-between;align-items:center;
+      color:white;
     }
     h1{margin:0;font-size:20px;font-weight:600;}
     input[type=file]{padding:8px;}
+    button{
+      padding:6px 12px;
+      background:#fff;
+      border:none;
+      border-radius:4px;
+      cursor:pointer;
+      font-size:14px;
+    }
     #flipbook{
       width:calc(var(--page-width)*2);
       height:var(--page-height);
+      margin:auto;
     }
     .page{
       width:var(--page-width);
       height:var(--page-height);
       background:white;
-      box-shadow:0 4px 10px rgba(0,0,0,0.2);
+      box-shadow:0 4px 10px rgba(0,0,0,0.3);
       display:flex;
       justify-content:center;
       align-items:center;
       overflow:hidden;
     }
-    .page img{
-      max-width:100%;
-      max-height:100%;
-      display:block;
-    }
+    .page img{max-width:100%;max-height:100%;display:block;}
     @media(max-width:900px){
-      :root{
-        --page-width:320px;
-        --page-height:460px;
-      }
-      #flipbook{
-        width:calc(var(--page-width)*2);
-      }
+      :root{--page-width:320px;--page-height:460px;}
+      #flipbook{width:calc(var(--page-width)*2);}
     }
   </style>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -69,15 +61,20 @@
 <body>
   <header>
     <h1>Flipbook Viewer</h1>
-    <input id="file-input" type="file" accept="application/pdf" />
+    <div>
+      <input id="file-input" type="file" accept="application/pdf" />
+      <button id="fullscreen-btn">Fullscreen</button>
+    </div>
   </header>
   <div id="flipbook"></div>
+
   <script>
     if(typeof pdfjsLib!=='undefined'){
       pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
 
     const fileInput=document.getElementById('file-input');
+    const fullscreenBtn=document.getElementById('fullscreen-btn');
 
     function clearFlipbook(){
       if($("#flipbook").data("turn")){
@@ -89,10 +86,7 @@
 
     fileInput.addEventListener('change',async e=>{
       const file=e.target.files[0];
-      if(!file||file.type!=='application/pdf'){
-        alert('Please select a PDF.');
-        return;
-      }
+      if(!file||file.type!=='application/pdf'){alert('Please select a PDF.');return;}
       clearFlipbook();
 
       const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
@@ -128,7 +122,7 @@
         display:'double',
         gradients:true,
         elevation:50,
-        duration:1500 // Slow & smooth turn in ms
+        duration:1500, // slow, smooth turning
       });
 
       // Keyboard arrow controls
@@ -163,6 +157,16 @@
           }
         }
       });
+    });
+
+    // Fullscreen toggle
+    fullscreenBtn.addEventListener('click',()=>{
+      const elem = document.documentElement;
+      if(!document.fullscreenElement){
+        elem.requestFullscreen().catch(err=>alert(`Error: ${err.message}`));
+      } else {
+        document.exitFullscreen();
+      }
     });
   </script>
 </body>
