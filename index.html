@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Flipbook with Turn.js</title>
+  <title>Flipbook with Turn.js & Sound</title>
   <style>
     :root{
       --bg:#111; /* matte black background */
@@ -68,6 +68,11 @@
   </header>
   <div id="flipbook"></div>
 
+  <!-- Page flip sound -->
+  <audio id="flip-sound" preload="auto">
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_49cf47f4df.mp3?filename=page-flip-102334.mp3" type="audio/mpeg">
+  </audio>
+
   <script>
     if(typeof pdfjsLib!=='undefined'){
       pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -75,6 +80,12 @@
 
     const fileInput=document.getElementById('file-input');
     const fullscreenBtn=document.getElementById('fullscreen-btn');
+    const flipSound=document.getElementById('flip-sound');
+
+    function playFlipSound(){
+      flipSound.currentTime = 0;
+      flipSound.play();
+    }
 
     function clearFlipbook(){
       if($("#flipbook").data("turn")){
@@ -122,7 +133,10 @@
         display:'double',
         gradients:true,
         elevation:50,
-        duration:1500, // slow, smooth turning
+        duration:1500, // slow smooth turn
+        when:{
+          turned: function(){ playFlipSound(); } // play sound when page turns
+        }
       });
 
       // Keyboard arrow controls
