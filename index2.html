@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flipbook with Turn.js</title>
+  <style>
+    :root {
+       --bg: #FFE5B4; /* Light peach background */
+      --fg: #000000;
+      --muted: #666;
+      --page-width: 535.5px;
+      --page-height: 638px;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      overflow: hidden; /* Removes scrollbars */
+    }
+    header {
+      max-width: 1100px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    input[type=file] {
+      padding: 8px;
+    }
+    #flipbook {
+      width: calc(var(--page-width) * 2);
+      height: var(--page-height);
+    }
+    .page {
+      width: var(--page-width);
+      height: var(--page-height);
+      background: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    .page img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    @media(max-width: 900px) {
+      :root {
+        --page-width: 320px;
+        --page-height: 460px;
+      }
+      #flipbook {
+        width: calc(var(--page-width) * 2);
+      }
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Flipbook Viewer</h1>
+    <div>
+      <input id="file-input" type="file" accept="application/pdf" />
+      <button id="fullscreen-btn">Fullscreen</button>
+    </div>
+  </header>
+
+  <div id="flipbook"></div>
+
+  <audio id="flip-sound" src="flipcard-91468 (mp3cut.net).mp3" preload="auto"></audio>
+
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    const fileInput = document.getElementById('file-input');
+    const flipSound = document.getElementById('flip-sound');
+
+    function playFlipSound() {
+      flipSound.currentTime = 0;
+      flipSound.play().catch(() => {});
+    }
+
+    function clearFlipbook() {
+      if ($("#flipbook").data("turn")) {
+        $('#flipbook').turn('destroy').empty();
+      } else {
+        $('#flipbook').empty();
+      }
+    }
+
+    fileInput.addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file || file.type !== 'application/pdf') {
+        alert('Please select a PDF.');
+        return;
+      }
+      clearFlipbook();
+
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      const imgs = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n);
+        const vp = page.getViewport({ scale: 1 });
+        const tw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+        const sc = tw / vp.width;
+        const svp = page.getViewport({ scale: sc });
+        const c = document.createElement('canvas');
+        c.width = svp.width; c.height = svp.height;
+        await page.render({ canvasContext: c.getContext('2d'), viewport: svp }).promise;
+        imgs.push(c.toDataURL());
+      }
+
+      imgs.forEach((src, i) => {
+        const d = document.createElement('div');
+        d.className = 'page';
+        const im = document.createElement('img');
+        im.src = src; im.alt = 'Page ' + (i + 1);
+        d.appendChild(im);
+        document.getElementById('flipbook').appendChild(d);
+      });
+
+      const pw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
+      const ph = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-height'));
+
+      $('#flipbook').turn({
+        width: pw * 2,
+        height: ph,
+        autoCenter: true,
+        display: 'double',
+        gradients: true,
+        elevation: 50,
+        duration: 1500 // slower, smoother turn
+      });
+
+      // Instant sound on interactions
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'ArrowRight') {
+          playFlipSound();
+          $('#flipbook').turn('next');
+        }
+        if (ev.key === 'ArrowLeft') {
+          playFlipSound();
+          $('#flipbook').turn('previous');
+        }
+      });
+
+      $('#flipbook').on('click', function (e) {
+        const offset = $(this).offset();
+        const center = offset.left + $(this).width() / 2;
+        playFlipSound();
+        if (e.pageX > center) {
+          $('#flipbook').turn('next');
+        } else {
+          $('#flipbook').turn('previous');
+        }
+      });
+
+      let touchStartX = 0;
+      document.getElementById('flipbook').addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+      document.getElementById('flipbook').addEventListener('touchend', e => {
+        let diff = e.changedTouches[0].screenX - touchStartX;
+        if (Math.abs(diff) > 50) {
+          playFlipSound();
+          if (diff < 0) {
+            $('#flipbook').turn('next');
+          } else {
+            $('#flipbook').turn('previous');
+          }
+        }
+      });
+    });
+
+    // Fullscreen toggle
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+      const elem = document.documentElement;
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+          alert(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+  </script>
+</body>
+</html>
