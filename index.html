@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mobile Flipbook Viewer</title>
+  <title>Flipbook with Turn.js</title>
+
   <style>
     :root {
       --bg: #FFE5B4;
@@ -78,15 +79,7 @@
     button, input[type=file] {
       padding: 6px 10px;
       font-size: 12px;
-      border: none;
-      border-radius: 6px;
-      background: #000;
-      color: #fff;
       cursor: pointer;
-    }
-
-    button:hover {
-      background: #333;
     }
 
     @media (orientation: portrait) {
@@ -125,7 +118,6 @@
   </header>
 
   <div id="flipbook"></div>
-
   <audio id="flip-sound" src="flipcard-91468 (mp3cut.net).mp3" preload="auto"></audio>
 
   <script>
@@ -160,6 +152,7 @@
 
       const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
       const imgs = [];
+
       for (let n = 1; n <= pdf.numPages; n++) {
         const page = await pdf.getPage(n);
         const vp = page.getViewport({ scale: 1 });
@@ -167,7 +160,8 @@
         const sc = tw / vp.width;
         const svp = page.getViewport({ scale: sc });
         const c = document.createElement('canvas');
-        c.width = svp.width; c.height = svp.height;
+        c.width = svp.width; 
+        c.height = svp.height;
         await page.render({ canvasContext: c.getContext('2d'), viewport: svp }).promise;
         imgs.push(c.toDataURL());
       }
@@ -176,12 +170,13 @@
         const d = document.createElement('div');
         d.className = 'page';
         const im = document.createElement('img');
-        im.src = src; im.alt = 'Page ' + (i + 1);
+        im.src = src; 
+        im.alt = 'Page ' + (i + 1);
         d.appendChild(im);
         document.getElementById('flipbook').appendChild(d);
       });
 
-      // Force exact size fit for mobile frame
+      // ✅ Fit flipbook perfectly to defined frame
       const flipbookEl = document.getElementById('flipbook');
       flipbookEl.style.width = (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width')) * 2) + 'px';
       flipbookEl.style.height = getComputedStyle(document.documentElement).getPropertyValue('--page-height');
@@ -196,10 +191,10 @@
         display: 'double',
         gradients: true,
         elevation: 50,
-        duration: 1500 // smoother animation
+        duration: 1500 // smooth and stable flip
       });
 
-      // Flip with arrow keys
+      // Flip sound on key and touch
       document.addEventListener('keydown', function (ev) {
         if (ev.key === 'ArrowRight') {
           playFlipSound();
@@ -211,7 +206,6 @@
         }
       });
 
-      // Click flip
       $('#flipbook').on('click', function (e) {
         const offset = $(this).offset();
         const center = offset.left + $(this).width() / 2;
@@ -223,7 +217,6 @@
         }
       });
 
-      // Touch flip for mobile
       let touchStartX = 0;
       document.getElementById('flipbook').addEventListener('touchstart', e => {
         touchStartX = e.changedTouches[0].screenX;
