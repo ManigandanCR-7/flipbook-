@@ -3,121 +3,109 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Flipbook with Turn.js</title>
+  <title>Mobile Flipbook Viewer</title>
   <style>
     :root {
       --bg: #FFE5B4;
       --fg: #000000;
       --muted: #666;
-      --page-width: 535.5px;
-      --page-height: 638px;
+      --page-width: 412px;
+      --page-height: 474px;
     }
 
     body {
       margin: 0;
-      padding: 20px;
+      padding: 0;
       background: var(--bg);
       color: var(--fg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
-      overflow: hidden;
-      height: 100vh;
       justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
 
     header {
-      max-width: 1100px;
-      width: 100%;
+      position: absolute;
+      top: 8px;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0 16px;
+      z-index: 10;
     }
 
     h1 {
+      font-size: 16px;
       margin: 0;
-      font-size: 20px;
       font-weight: 600;
-    }
-
-    input[type=file] {
-      padding: 8px;
     }
 
     #flipbook {
       width: calc(var(--page-width) * 2);
       height: var(--page-height);
-      margin: 0 auto;
-      transition: all 0.4s ease;
-      transform-origin: center center;
+      margin: auto;
       display: flex;
       justify-content: center;
       align-items: center;
+      transform-origin: center center;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .page {
       width: var(--page-width);
       height: var(--page-height);
       background: white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      border: none;
     }
 
     .page img {
-      max-width: 100%;
-      max-height: 100%;
-      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    button {
-      padding: 6px 12px;
+    button, input[type=file] {
+      padding: 6px 10px;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #000;
+      color: #fff;
       cursor: pointer;
-      font-size: 14px;
     }
 
-    /* Mobile adaptation */
-    @media (max-width: 900px) {
-      :root {
-        --page-width: 300px;
-        --page-height: 440px;
-      }
+    button:hover {
+      background: #333;
+    }
 
-      header {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-      }
-
+    @media (orientation: portrait) {
       #flipbook {
-        width: calc(var(--page-width) * 2);
-        height: var(--page-height);
         transform: scale(0.9);
+        transform-origin: center center;
       }
     }
 
-    /* Landscape mobile view */
-    @media (orientation: landscape) and (max-height: 500px) {
+    @media (orientation: landscape) {
       :root {
-        --page-width: 320px;
-        --page-height: 220px;
+        --page-width: 350px;
+        --page-height: 320px;
       }
-
       #flipbook {
-        transform: scale(1);
         width: calc(var(--page-width) * 2);
         height: var(--page-height);
-        margin: auto;
-      }
-
-      body {
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
+        transform: scale(1);
+        transform-origin: center center;
       }
     }
   </style>
@@ -126,6 +114,7 @@
   <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
+
 <body>
   <header>
     <h1>Flipbook Viewer</h1>
@@ -192,6 +181,11 @@
         document.getElementById('flipbook').appendChild(d);
       });
 
+      // Force exact size fit for mobile frame
+      const flipbookEl = document.getElementById('flipbook');
+      flipbookEl.style.width = (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width')) * 2) + 'px';
+      flipbookEl.style.height = getComputedStyle(document.documentElement).getPropertyValue('--page-height');
+
       const pw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-width'));
       const ph = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-height'));
 
@@ -202,11 +196,11 @@
         display: 'double',
         gradients: true,
         elevation: 50,
-        duration: 1500
+        duration: 1500 // smoother animation
       });
 
-      // Keyboard and touch navigation
-      document.addEventListener('keydown', ev => {
+      // Flip with arrow keys
+      document.addEventListener('keydown', function (ev) {
         if (ev.key === 'ArrowRight') {
           playFlipSound();
           $('#flipbook').turn('next');
@@ -217,6 +211,7 @@
         }
       });
 
+      // Click flip
       $('#flipbook').on('click', function (e) {
         const offset = $(this).offset();
         const center = offset.left + $(this).width() / 2;
@@ -228,6 +223,7 @@
         }
       });
 
+      // Touch flip for mobile
       let touchStartX = 0;
       document.getElementById('flipbook').addEventListener('touchstart', e => {
         touchStartX = e.changedTouches[0].screenX;
