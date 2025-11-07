@@ -6,12 +6,13 @@
   <title>Flipbook with Turn.js</title>
   <style>
     :root {
-       --bg: #FFE5B4; /* Light peach background */
+      --bg: #FFE5B4;
       --fg: #000000;
       --muted: #666;
       --page-width: 535.5px;
       --page-height: 638px;
     }
+
     body {
       margin: 0;
       padding: 20px;
@@ -22,8 +23,11 @@
       flex-direction: column;
       align-items: center;
       gap: 20px;
-      overflow: hidden; /* Removes scrollbars */
+      overflow: hidden;
+      height: 100vh;
+      justify-content: center;
     }
+
     header {
       max-width: 1100px;
       width: 100%;
@@ -31,18 +35,28 @@
       justify-content: space-between;
       align-items: center;
     }
+
     h1 {
       margin: 0;
       font-size: 20px;
       font-weight: 600;
     }
+
     input[type=file] {
       padding: 8px;
     }
+
     #flipbook {
       width: calc(var(--page-width) * 2);
       height: var(--page-height);
+      margin: 0 auto;
+      transition: all 0.4s ease;
+      transform-origin: center center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
+
     .page {
       width: var(--page-width);
       height: var(--page-height);
@@ -53,26 +67,61 @@
       align-items: center;
       overflow: hidden;
     }
+
     .page img {
       max-width: 100%;
       max-height: 100%;
       display: block;
     }
+
     button {
       padding: 6px 12px;
       cursor: pointer;
       font-size: 14px;
     }
-    @media(max-width: 900px) {
+
+    /* Mobile adaptation */
+    @media (max-width: 900px) {
       :root {
-        --page-width: 320px;
-        --page-height: 460px;
+        --page-width: 300px;
+        --page-height: 440px;
       }
+
+      header {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
       #flipbook {
         width: calc(var(--page-width) * 2);
+        height: var(--page-height);
+        transform: scale(0.9);
+      }
+    }
+
+    /* Landscape mobile view */
+    @media (orientation: landscape) and (max-height: 500px) {
+      :root {
+        --page-width: 320px;
+        --page-height: 220px;
+      }
+
+      #flipbook {
+        transform: scale(1);
+        width: calc(var(--page-width) * 2);
+        height: var(--page-height);
+        margin: auto;
+      }
+
+      body {
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
       }
     }
   </style>
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js/turn.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -153,11 +202,11 @@
         display: 'double',
         gradients: true,
         elevation: 50,
-        duration: 1500 // slower, smoother turn
+        duration: 1500
       });
 
-      // Instant sound on interactions
-      document.addEventListener('keydown', function (ev) {
+      // Keyboard and touch navigation
+      document.addEventListener('keydown', ev => {
         if (ev.key === 'ArrowRight') {
           playFlipSound();
           $('#flipbook').turn('next');
