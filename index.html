@@ -208,5 +208,52 @@
       }
     });
   </script>
+  <!-- Disable Inspect / Right Click / DevTools -->
+<script>
+  // Disable Right Click
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+
+  // Disable common inspect shortcuts
+  document.addEventListener('keydown', function(e) {
+    // F12
+    if (e.keyCode === 123) e.preventDefault();
+
+    // Ctrl+Shift+I
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 73) e.preventDefault();
+
+    // Ctrl+Shift+C
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 67) e.preventDefault();
+
+    // Ctrl+U (View Source)
+    if (e.ctrlKey && e.keyCode === 85) e.preventDefault();
+
+    // Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 74) e.preventDefault();
+  });
+
+  // Disable text selection & copy
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('copy', e => e.preventDefault());
+
+  // 🔥 DevTools Detection (Strongest Protection)
+  (function() {
+    let checkDevTools = function() {
+      const threshold = 160;
+
+      if (
+        window.outerHeight - window.innerHeight > threshold ||
+        window.outerWidth - window.innerWidth > threshold
+      ) {
+        document.body.innerHTML = "";
+        alert("Developer Tools is disabled on this webpage.");
+        window.close();
+      }
+    };
+    setInterval(checkDevTools, 1000);
+  })();
+</script>
+
 </body>
 </html>
